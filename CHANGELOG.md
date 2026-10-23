@@ -2,6 +2,20 @@
 
 Newest first. Every change to this repo gets a dated entry in the same pass.
 
+## 2026-10-23 — docs: run modes, repo visibility, beginner traps
+- The wipe/troubleshooting section now gives every step in two flavors —
+  Docker (compose) and bare metal ($HERMES_HOME) — instead of assuming a
+  container deployment.
+- Quick Start gains the repo-visibility callout: the agent can only read
+  paths that exist inside its own environment; a host clone is invisible
+  to a containerized agent until it is bind-mounted or copied in
+  (`docker compose cp`), and REPO must be the in-container path. The
+  verify example is shown for both run modes, and `make_paste.py` is the
+  primary Quick Start flow (it also prints the visibility reminder).
+- `prompt.md`: preamble points at `make_paste.py`; Step 2 names the
+  missing-REPO-path case as an environment/mount problem to report, not
+  something to search around.
+
 ## 2026-10-23 — review improvements: paste helper, operator verifier, python3 pre-flight
 - `tools/make_paste.py <persona-id>`: fills the persona and repo path
   into `prompt.md` and writes `paste-ready.md` — no manual editing
