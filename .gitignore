@@ -2,3 +2,4 @@ dist/
 .env
 *.bak-*
 __pycache__/
+paste-ready.md
