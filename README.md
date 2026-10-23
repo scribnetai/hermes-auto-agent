@@ -34,15 +34,31 @@ python3 tools/validate.py
    empty means the install was fully by the book. Then verify it yourself
    (next section) — the report is a claim, this is the result:
    ```bash
-   python3 tools/verify_profile.py <profile-home> demo-researcher
-   # <profile-home>: /opt/data/profiles/<name> for a named profile,
-   # /opt/data itself for the default profile (Docker paths)
+   # Docker (run from your compose folder; adjust the repo path to yours):
+   docker compose exec hermes python3 /opt/data/hermes-auto-agent/tools/verify_profile.py /opt/data/profiles/<name> demo-researcher
+   # Bare metal (run from your clone):
+   python3 tools/verify_profile.py ~/.hermes/profiles/<name> demo-researcher
    ```
+   (For the default profile, the profile home is the Hermes home itself:
+   `/opt/data` in Docker, `~/.hermes` bare metal.)
 
-One environment note: the agent's own shell needs `python3` — the
-prompt's Step 0 checks for it and stops if it's missing, because every
-later step (validator, builder) runs through it, including inside a
-container.
+Two environment notes:
+
+- **The agent's shell needs `python3`.** The prompt's Step 0 checks for it
+  and stops if it's missing, because every later step (validator,
+  builder) runs through it, including inside a container.
+- **The agent can only see what its environment can see.** `REPO=` must
+  be a path that exists *where the agent runs*. Bare metal: the path as
+  cloned. **Docker: a host path is invisible inside the container** —
+  bind-mount the clone into the container, or copy it in, and use the
+  in-container path:
+  ```bash
+  # run from the folder holding your docker-compose.yml
+  docker compose cp ./hermes-auto-agent hermes:/opt/data/hermes-auto-agent
+  # then: REPO=/opt/data/hermes-auto-agent
+  ```
+  If the agent reports the repo path doesn't exist, this is almost
+  always why.
 
 The bundled `demo-researcher` persona is a small, harmless example
 (summarizes sources with citations). Replace it with your own — see
@@ -88,13 +104,21 @@ fences:
 ## If an install goes wrong: wipe the one profile and retry
 
 Deletes **only the named profile**; every other profile is untouched.
-Commands below are for a Docker-Compose Hermes deployment, run from the
-folder holding your `docker-compose.yml`.
+Every step below comes in two flavors — use the one that matches how
+*your* Hermes runs:
+
+- **Docker** (Compose deployment): run from the folder holding your
+  `docker-compose.yml`; the Hermes data dir is `/opt/data` in-container.
+- **Bare metal** (direct install, e.g. a venv): `$HERMES_HOME` is your
+  Hermes home — `~/.hermes` by default.
 
 **Step 0 — back up first.** A wipe cannot be undone without one:
 
 ```bash
+# Docker (backs up the compose data folder):
 tar czf data-backup-$(date +%Y%m%d-%H%M%S).tar.gz data/
+# Bare metal:
+tar czf hermes-backup-$(date +%Y%m%d-%H%M%S).tar.gz $HERMES_HOME
 ```
 
 **Step 1 — close the profile.** Exit any open session on it; a live
@@ -103,44 +127,67 @@ session can recreate files while you delete them.
 **Step 2 — delete the profile** (it asks you to type the name to confirm):
 
 ```bash
+# Docker:
 docker compose exec hermes hermes profile delete <profile-name>
 docker compose exec hermes hermes profile list
+# Bare metal:
+hermes profile delete <profile-name>
+hermes profile list
 ```
 
 If the delete ends with "session/routing identity settlement is still
 pending", run the command it names:
 
 ```bash
+# Docker:
 docker compose exec hermes hermes profile purge-identity <profile-name>
+# Bare metal:
+hermes profile purge-identity <profile-name>
 ```
 
 **Step 3 — check for leftovers** (an empty folder sometimes survives):
 
 ```bash
+# Docker:
 docker compose exec hermes ls /opt/data/profiles/
 # if <profile-name> is still listed:
 docker compose exec hermes rm -rf /opt/data/profiles/<profile-name>
 docker compose exec hermes ls /opt/data/profiles/   # confirm it is gone
+# Bare metal:
+ls $HERMES_HOME/profiles/
+rm -rf $HERMES_HOME/profiles/<profile-name>        # only if still listed
+ls $HERMES_HOME/profiles/                          # confirm it is gone
 ```
 
 **Step 4 — if the failure was permissions** (the agent reported files it
-could not delete or rebuild): the agent works as a specific user inside
-the container; files owned by anyone else are outside its reach, so
-ownership is fixed by *you, the operator* — never by the agent. Verify
-writability **as the agent's user**, not as root:
+could not delete or rebuild): the agent works as a specific user; files
+owned by anyone else are outside its reach, so ownership is fixed by
+*you, the operator* — never by the agent. Verify writability **as the
+agent's user**, not as root:
 
 ```bash
+# Docker (the agent's uid inside the container):
 docker compose exec hermes sh -c 'id -u; ls -ld /opt/data/<repo>'
 docker compose exec -u <agent-uid> hermes sh -c 'touch /opt/data/<repo>/.wtest && rm /opt/data/<repo>/.wtest && echo WRITABLE-AS-AGENT'
+# Bare metal (the agent runs as your user — check the repo folder):
+ls -ld <repo>
+touch <repo>/.wtest && rm <repo>/.wtest && echo WRITABLE
 ```
 
-**Step 5 — retry clean:** recreate the profile
-(`docker compose exec hermes hermes profile create <profile-name>`) and
-repeat the one-paste install.
+**Step 5 — retry clean:** recreate the profile and repeat the one-paste
+install:
 
-⚠️ **Never** delete `/opt/data` itself or the whole `profiles/` folder.
-Every command above names exactly one profile. If reality doesn't match
-this page, stop and restore from the Step 0 backup instead of guessing.
+```bash
+# Docker:
+docker compose exec hermes hermes profile create <profile-name>
+# Bare metal:
+hermes profile create <profile-name>
+```
+
+⚠️ **Never** delete the whole data dir (`/opt/data`, `$HERMES_HOME`) or
+the whole `profiles/` folder. Every command above names exactly one
+profile. If reality doesn't match this page, stop and restore from the
+Step 0 backup instead of guessing.
 
 ## Make it yours
 
