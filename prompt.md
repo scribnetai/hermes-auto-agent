@@ -3,6 +3,8 @@
 Paste everything below the line into a fresh Hermes profile (or any agent
 with shell + file access on the machine that hosts Hermes). It installs ONE
 persona bundle, correctly, and proves it with the repo's own checker.
+(Easiest: run `python3 tools/make_paste.py <persona>` — it writes a
+ready-to-paste `paste-ready.md` with the variables already filled in.)
 
 Rules the installing agent must follow:
 
@@ -63,7 +65,10 @@ manifest and tell me about the difference.
 If the bundle folder is missing, or any expected file is absent, STOP and
 report the exact output. Do not delete, move, chmod, or chown anything, do
 not use sudo, and do not substitute a different bundle — a bundle found
-anywhere else does not count as Step 2 done.
+anywhere else does not count as Step 2 done. If the REPO path itself does
+not exist from where you are executing, that is an environment problem
+(for example, the repo was never mounted or copied into this container) —
+report exactly that; do not search the filesystem for another copy.
 
 **Step 3 — Back up before overwriting (only if the targets already exist).**
 
