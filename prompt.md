@@ -26,6 +26,17 @@ starting — do not guess):
 - PERSONA: the persona id (a folder name under `bundles/`)
 - REPO: the absolute path where this repo is cloned on this machine
 
+**Step 0 — Pre-flight: prove python3 exists in THIS shell.**
+
+```bash
+python3 --version
+```
+
+Expected: a Python 3 version line (e.g. `Python 3.12.x`). Every later step
+runs through python3 in this same shell — including inside a container, if
+that is where you are executing. If `python3` is not found, STOP and report
+that; do not substitute another interpreter or skip the checker.
+
 **Step 1 — Validate the repo first.**
 
 ```bash
