@@ -21,11 +21,28 @@ python3 tools/validate.py
 
 1. Start a Hermes session on a **fresh profile** (a throwaway profile is
    the right place for a first run).
-2. Open `prompt.md`. First line of your paste:
-   `PERSONA=demo-researcher, REPO=<absolute path to this clone>`
-   then paste everything below the `---` line.
+2. Build the paste — no manual editing. This fills in the persona and the
+   repo path and writes a ready-to-paste file:
+   ```bash
+   python3 tools/make_paste.py demo-researcher
+   # writes paste-ready.md — copy the whole file, paste it into the session
+   ```
+   (By hand works too: first line `PERSONA=demo-researcher,
+   REPO=<absolute path to this clone>`, then everything in `prompt.md`
+   below the `---` line.)
 3. Read the report. Item 7 — "anything not in the steps" — is the result:
-   empty means the install was fully by the book.
+   empty means the install was fully by the book. Then verify it yourself
+   (next section) — the report is a claim, this is the result:
+   ```bash
+   python3 tools/verify_profile.py <profile-home> demo-researcher
+   # <profile-home>: /opt/data/profiles/<name> for a named profile,
+   # /opt/data itself for the default profile (Docker paths)
+   ```
+
+One environment note: the agent's own shell needs `python3` — the
+prompt's Step 0 checks for it and stops if it's missing, because every
+later step (validator, builder) runs through it, including inside a
+container.
 
 The bundled `demo-researcher` persona is a small, harmless example
 (summarizes sources with citations). Replace it with your own — see
@@ -36,6 +53,8 @@ The bundled `demo-researcher` persona is a small, harmless example
 ```
 prompt.md                     The installer. The whole point.
 tools/validate.py             Bundle checker + secret scan. The gate.
+tools/make_paste.py           Builds paste-ready.md with variables filled in.
+tools/verify_profile.py       Operator-side install verification (no trust).
 personas/<id>/persona.yaml    Source manifest: id, skills, memory scope.
 bundles/<id>/                 A ready-to-install bundle:
   MANIFEST.md                   Install + verify instructions (authority).
@@ -58,12 +77,13 @@ fences:
 - **No secrets, no sudo — stop and report.** The installing agent must
   never ask for a password or token, never elevate, and must halt on the
   first unexpected output instead of improvising around it.
-- **The report is a claim, not a result.** Verify it yourself with
-  read-only checks: list the profile's skills folder and compare it to
-  `persona.yaml`; check the seed memory landed (`wc -c`); open a *fresh*
-  session on the profile and ask it — unled — what its role is. If it
-  answers as the installed persona with no install conversation in its
-  history, the install is real.
+- **The report is a claim, not a result.** Verify it yourself:
+  `python3 tools/verify_profile.py <profile-home> <persona-id>` checks the
+  seed memory (presence + size) and every declared skill against the
+  filesystem and exits non-zero on any miss. Then open a *fresh* session
+  on the profile and ask it — unled — what its role is. If it answers as
+  the installed persona with no install conversation in its history, the
+  install is real.
 
 ## If an install goes wrong: wipe the one profile and retry
 
