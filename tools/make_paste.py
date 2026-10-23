@@ -39,6 +39,8 @@ def main() -> int:
     dest = repo / "paste-ready.md"
     dest.write_text(out, encoding="utf-8")
     print(f"wrote {dest} ({len(out)} chars) — copy the whole file and paste it")
+    print("note: REPO must be reachable from inside the agent's environment —"
+          " if Hermes runs in a container, mount or copy the repo in first (see README)")
     if leftover:
         print(f"note: unfilled placeholders remain: {', '.join(leftover)}")
     return 0
